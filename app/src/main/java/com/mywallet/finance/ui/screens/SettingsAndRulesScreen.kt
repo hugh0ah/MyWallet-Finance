@@ -13,15 +13,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -60,6 +63,7 @@ import com.mywallet.finance.domain.DataBackupManager
 import com.mywallet.finance.service.PaymentNotificationListenerService
 import com.mywallet.finance.ui.theme.AccentGreen
 import com.mywallet.finance.ui.theme.AccentOrange
+import com.mywallet.finance.ui.theme.AccentRed
 import com.mywallet.finance.ui.theme.PrimaryBlue
 import kotlinx.coroutines.launch
 
@@ -71,6 +75,8 @@ fun SettingsAndRulesScreen(
     merchantRules: List<MerchantRuleEntity>,
     onAddMerchantRule: (MerchantRuleEntity) -> Unit,
     onDeleteMerchantRule: (MerchantRuleEntity) -> Unit,
+    onDeleteAllTransactions: () -> Unit,
+    onResetDatabaseToFactory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -83,6 +89,8 @@ fun SettingsAndRulesScreen(
     }
 
     var showAddRuleDialog by remember { mutableStateOf(false) }
+    var showClearTransactionsDialog by remember { mutableStateOf(false) }
+    var showResetFactoryDialog by remember { mutableStateOf(false) }
 
     val categoriesMap = remember(categories) { categories.associateBy { it.id } }
     val accountsMap = remember(accounts) { accounts.associateBy { it.id } }
@@ -101,7 +109,58 @@ fun SettingsAndRulesScreen(
             )
         }
 
-        // 2. Permiso del Sistema para Notificaciones
+        // 2. Tarjeta Destacada: Gestión de Datos Reales
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.CleaningServices, contentDescription = null, tint = PrimaryBlue)
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = "Gestión de Datos Reales",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Configura la app para tu uso diario real eliminando movimientos de prueba o restableciendo la configuración inicial.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Botón 1: Borrar todas las transacciones
+                    Button(
+                        onClick = { showClearTransactionsDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentOrange),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Borrar todas las transacciones de prueba")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Botón 2: Restablecer aplicación de fábrica
+                    OutlinedButton(
+                        onClick = { showResetFactoryDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Restablecer aplicación de fábrica")
+                    }
+                }
+            }
+        }
+
+        // 3. Permiso del Sistema para Notificaciones
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -110,12 +169,12 @@ fun SettingsAndRulesScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.Notifications, contentDescription = null, tint = PrimaryBlue)
-                        Spacer(modifier = Modifier.padding(4.dp))
+                        Spacer(modifier = Modifier.size(8.dp))
                         Text(text = "Acceso a Notificaciones de Pago", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Permite a MyWallet escuchar notificaciones de Google Wallet y bancos compatibles para registrar tus gastos al instante en segundo plano sin pulsar nada.",
+                        text = "Permite a MyWallet escuchar notificaciones de Google Wallet y bancos compatibles (BBVA, Santander, CaixaBank, Sabadell, Revolut, etc.) para registrar tus gastos en tiempo real.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -134,7 +193,7 @@ fun SettingsAndRulesScreen(
             }
         }
 
-        // 3. Simulador de Notificación de Pago (Pruebas en Vivo)
+        // 4. Simulador de Notificación de Pago (Pruebas en Vivo)
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -143,7 +202,7 @@ fun SettingsAndRulesScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.FlashOn, contentDescription = null, tint = AccentOrange)
-                        Spacer(modifier = Modifier.padding(4.dp))
+                        Spacer(modifier = Modifier.size(8.dp))
                         Text(text = "Simulador de Notificación Bancaria", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -182,7 +241,7 @@ fun SettingsAndRulesScreen(
             }
         }
 
-        // 4. Gestor de Reglas de Comercios (Auto-Categorización)
+        // 5. Gestor de Reglas de Comercios (Auto-Categorización)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -199,13 +258,13 @@ fun SettingsAndRulesScreen(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.padding(2.dp))
+                    Spacer(modifier = Modifier.size(4.dp))
                     Text("Añadir", fontSize = 12.sp)
                 }
             }
         }
 
-        items(merchantRules) { rule ->
+        items(merchantRules, key = { it.id }) { rule ->
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -217,7 +276,7 @@ fun SettingsAndRulesScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(text = rule.keyword, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         Text(
                             text = "Categoría: ${categoriesMap[rule.targetCategoryId]?.name ?: "Alimentación"}",
@@ -231,13 +290,13 @@ fun SettingsAndRulesScreen(
                         )
                     }
                     IconButton(onClick = { onDeleteMerchantRule(rule) }) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Gray)
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Eliminar", tint = AccentRed)
                     }
                 }
             }
         }
 
-        // 5. Copias de Seguridad (Exportar / Importar)
+        // 6. Copias de Seguridad (Exportar / Importar)
         item {
             Spacer(modifier = Modifier.height(10.dp))
             Text(
@@ -253,45 +312,35 @@ fun SettingsAndRulesScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Exportación e Importación Offline-First", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Tus datos nunca salen de tu dispositivo salvo que decidas exportar una copia en JSON o CSV.",
+                        text = "Tus datos financieros son 100% privados y se almacenan únicamente en tu dispositivo. Puedes exportarlos en formato JSON para guardarlos o compartirlos.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Button(
                             onClick = {
                                 scope.launch {
                                     val json = backupManager.exportToJson()
-                                    shareText(context, json, "backup_mywallet.json", "application/json")
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, json)
+                                        type = "application/json"
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, "Exportar Backup JSON"))
                                 }
                             },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
                         ) {
-                            Icon(imageVector = Icons.Default.Share, contentDescription = null)
-                            Spacer(modifier = Modifier.padding(2.dp))
-                            Text("Exportar JSON", fontSize = 12.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                scope.launch {
-                                    val csv = backupManager.exportTransactionsToCsv()
-                                    shareText(context, csv, "transacciones_mywallet.csv", "text/csv")
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(imageVector = Icons.Default.Download, contentDescription = null)
-                            Spacer(modifier = Modifier.padding(2.dp))
-                            Text("Exportar CSV", fontSize = 12.sp)
+                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text("Exportar", fontSize = 12.sp)
                         }
                     }
                 }
@@ -299,75 +348,186 @@ fun SettingsAndRulesScreen(
         }
     }
 
-    // Diálogo para añadir regla de comercio
-    if (showAddRuleDialog) {
-        var keywordInput by remember { mutableStateOf("") }
-        var selectedCatId by remember { mutableStateOf(categories.firstOrNull()?.id ?: 1L) }
-        var selectedAccId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 1L) }
-
+    // Diálogo de Confirmación: Borrar todas las transacciones
+    if (showClearTransactionsDialog) {
         AlertDialog(
-            onDismissRequest = { showAddRuleDialog = false },
-            title = { Text("Nueva Regla de Comercio") },
+            onDismissRequest = { showClearTransactionsDialog = false },
+            title = { Text("¿Borrar todas las transacciones?") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = keywordInput,
-                        onValueChange = { keywordInput = it },
-                        label = { Text("Palabra clave (ej. Mercadona, Repsol)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Text(text = "Asignar a Categoría:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    // Selector simple de categorías
-                    for (cat in categories.take(4)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                        ) {
-                            androidx.compose.material3.RadioButton(
-                                selected = selectedCatId == cat.id,
-                                onClick = { selectedCatId = cat.id }
-                            )
-                            Text(text = cat.name, fontSize = 13.sp)
-                        }
-                    }
-                }
+                Text("Esta acción eliminará todas las transacciones registradas. Los saldos de las cuentas volverán a su saldo inicial limpio.")
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (keywordInput.isNotBlank()) {
-                            onAddMerchantRule(
-                                MerchantRuleEntity(
-                                    keyword = keywordInput.trim(),
-                                    targetCategoryId = selectedCatId,
-                                    targetAccountId = selectedAccId
-                                )
-                            )
-                            showAddRuleDialog = false
-                        }
-                    }
+                        showClearTransactionsDialog = false
+                        onDeleteAllTransactions()
+                        Toast.makeText(context, "Transacciones eliminadas correctamente", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text("Guardar Regla")
+                    Text("Borrar todo")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAddRuleDialog = false }) {
+                TextButton(onClick = { showClearTransactionsDialog = false }) {
                     Text("Cancelar")
                 }
             }
         )
     }
+
+    // Diálogo de Confirmación: Restablecer aplicación de fábrica
+    if (showResetFactoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetFactoryDialog = false },
+            title = { Text("¿Restablecer de fábrica?") },
+            text = {
+                Text("Se eliminarán todas tus transacciones, cuentas personalizadas y reglas. La aplicación volverá a su estado inicial de instalación.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showResetFactoryDialog = false
+                        onResetDatabaseToFactory()
+                        Toast.makeText(context, "Aplicación restablecida de fábrica", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
+                ) {
+                    Text("Restablecer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetFactoryDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Diálogo para añadir nueva regla de comercio
+    if (showAddRuleDialog) {
+        AddMerchantRuleDialog(
+            accounts = accounts,
+            categories = categories,
+            onDismiss = { showAddRuleDialog = false },
+            onSave = { rule ->
+                onAddMerchantRule(rule)
+                showAddRuleDialog = false
+            }
+        )
+    }
 }
 
-private fun shareText(context: Context, content: String, title: String, mimeType: String) {
-    val sendIntent = Intent().apply {
-        action = Intent.ACTION_SEND
-        putExtra(Intent.EXTRA_TEXT, content)
-        type = mimeType
-    }
-    val shareIntent = Intent.createChooser(sendIntent, title)
-    context.startActivity(shareIntent)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddMerchantRuleDialog(
+    accounts: List<AccountEntity>,
+    categories: List<CategoryEntity>,
+    onDismiss: () -> Unit,
+    onSave: (MerchantRuleEntity) -> Unit
+) {
+    var keyword by remember { mutableStateOf("") }
+    var selectedCategoryId by remember { mutableStateOf(categories.firstOrNull()?.id ?: 1L) }
+    var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: 1L) }
+
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var accountExpanded by remember { mutableStateOf(false) }
+
+    val categoriesMap = remember(categories) { categories.associateBy { it.id } }
+    val accountsMap = remember(accounts) { accounts.associateBy { it.id } }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nueva Regla de Comercio") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = keyword,
+                    onValueChange = { keyword = it },
+                    label = { Text("Palabra clave (ej. Mercadona, Zara)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Dropdown Categoría
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = categoriesMap[selectedCategoryId]?.name ?: "Seleccionar",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Asignar Categoría") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        categories.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat.name) },
+                                onClick = {
+                                    selectedCategoryId = cat.id
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Dropdown Cuenta
+                ExposedDropdownMenuBox(
+                    expanded = accountExpanded,
+                    onExpandedChange = { accountExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = accountsMap[selectedAccountId]?.name ?: "Seleccionar",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Asignar a Cuenta") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = accountExpanded,
+                        onDismissRequest = { accountExpanded = false }
+                    ) {
+                        accounts.forEach { acc ->
+                            DropdownMenuItem(
+                                text = { Text(acc.name) },
+                                onClick = {
+                                    selectedAccountId = acc.id
+                                    accountExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (keyword.isNotBlank()) {
+                        val newRule = MerchantRuleEntity(
+                            keyword = keyword.trim(),
+                            targetCategoryId = selectedCategoryId,
+                            targetAccountId = selectedAccountId
+                        )
+                        onSave(newRule)
+                    }
+                }
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }

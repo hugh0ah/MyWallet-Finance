@@ -70,6 +70,41 @@ fun AppNavigation(database: AppDatabase) {
                             database.transactionDao().insertTransaction(newTx)
                         }
                     },
+                    onUpdateTransaction = { tx ->
+                        scope.launch {
+                            database.transactionDao().updateTransaction(tx)
+                        }
+                    },
+                    onDeleteTransaction = { tx ->
+                        scope.launch {
+                            database.transactionDao().deleteTransaction(tx)
+                        }
+                    },
+                    onDeleteAllTransactions = {
+                        scope.launch {
+                            database.transactionDao().deleteAllTransactions()
+                        }
+                    },
+                    onAddAccount = { newAccount ->
+                        scope.launch {
+                            database.accountDao().insertAccount(newAccount)
+                        }
+                    },
+                    onUpdateAccount = { account ->
+                        scope.launch {
+                            database.accountDao().updateAccount(account)
+                        }
+                    },
+                    onDeleteAccount = { account ->
+                        scope.launch {
+                            database.accountDao().deleteAccount(account)
+                        }
+                    },
+                    onAddCategory = { cat ->
+                        scope.launch {
+                            database.categoryDao().insertCategory(cat)
+                        }
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -78,6 +113,31 @@ fun AppNavigation(database: AppDatabase) {
                     budgets = budgets,
                     categories = categories,
                     transactions = transactions,
+                    onAddBudget = { newBudget ->
+                        scope.launch {
+                            database.budgetDao().insertBudget(newBudget)
+                        }
+                    },
+                    onUpdateBudget = { budget ->
+                        scope.launch {
+                            database.budgetDao().updateBudget(budget)
+                        }
+                    },
+                    onDeleteBudget = { budget ->
+                        scope.launch {
+                            database.budgetDao().deleteBudget(budget)
+                        }
+                    },
+                    onAddCategory = { newCategory ->
+                        scope.launch {
+                            database.categoryDao().insertCategory(newCategory)
+                        }
+                    },
+                    onDeleteCategory = { category ->
+                        scope.launch {
+                            database.categoryDao().deleteCategory(category)
+                        }
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -94,6 +154,16 @@ fun AppNavigation(database: AppDatabase) {
                     onDeleteMerchantRule = { rule ->
                         scope.launch {
                             database.merchantRuleDao().deleteRule(rule)
+                        }
+                    },
+                    onDeleteAllTransactions = {
+                        scope.launch {
+                            database.transactionDao().deleteAllTransactions()
+                        }
+                    },
+                    onResetDatabaseToFactory = {
+                        scope.launch {
+                            database.resetToFactory()
                         }
                     },
                     modifier = Modifier.padding(innerPadding)

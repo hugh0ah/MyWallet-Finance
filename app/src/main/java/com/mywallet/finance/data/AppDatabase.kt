@@ -38,6 +38,22 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
     abstract fun merchantRuleDao(): MerchantRuleDao
 
+    /**
+     * Restablece la base de datos a sus valores iniciales de fábrica.
+     */
+    suspend fun resetToFactory() {
+        transactionDao().deleteAllTransactions()
+        budgetDao().deleteAllBudgets()
+        merchantRuleDao().deleteAllRules()
+        categoryDao().deleteAllCategories()
+        accountDao().deleteAllAccounts()
+
+        accountDao().insertAll(getDefaultAccounts())
+        categoryDao().insertAll(getDefaultCategories())
+        merchantRuleDao().insertAll(getDefaultRules())
+        budgetDao().insertAll(getDefaultBudgets())
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -56,6 +72,79 @@ abstract class AppDatabase : RoomDatabase() {
                 instance
             }
         }
+
+        fun getDefaultAccounts(): List<AccountEntity> = listOf(
+            AccountEntity(
+                name = "Cuenta Principal",
+                initialBalance = 1250.0,
+                currencyCode = "EUR",
+                colorHex = "#1976D2",
+                iconName = "account_balance",
+                accountType = "REGULAR",
+                includeInTotal = true
+            ),
+            AccountEntity(
+                name = "Efectivo",
+                initialBalance = 140.0,
+                currencyCode = "EUR",
+                colorHex = "#388E3C",
+                iconName = "payments",
+                accountType = "CASH",
+                includeInTotal = true
+            ),
+            AccountEntity(
+                name = "Fondo de Ahorros",
+                initialBalance = 4500.0,
+                currencyCode = "EUR",
+                colorHex = "#7B1FA2",
+                iconName = "savings",
+                accountType = "SAVINGS",
+                includeInTotal = true
+            )
+        )
+
+        fun getDefaultCategories(): List<CategoryEntity> = listOf(
+            CategoryEntity(id = 1, name = "Alimentación", iconName = "restaurant", colorHex = "#FF5722", isExpense = true),
+            CategoryEntity(id = 2, name = "Transporte", iconName = "directions_car", colorHex = "#03A9F4", isExpense = true),
+            CategoryEntity(id = 3, name = "Vivienda & Facturas", iconName = "home", colorHex = "#9C27B0", isExpense = true),
+            CategoryEntity(id = 4, name = "Ocio & Cafeterías", iconName = "local_cafe", colorHex = "#FF9800", isExpense = true),
+            CategoryEntity(id = 5, name = "Salud & Farmacia", iconName = "medical_services", colorHex = "#E91E63", isExpense = true),
+            CategoryEntity(id = 6, name = "Compras & Ropa", iconName = "shopping_bag", colorHex = "#673AB7", isExpense = true),
+            CategoryEntity(id = 7, name = "Suscripciones", iconName = "subscriptions", colorHex = "#009688", isExpense = true),
+            CategoryEntity(id = 8, name = "Nómina & Salario", iconName = "payments", colorHex = "#4CAF50", isExpense = false),
+            CategoryEntity(id = 9, name = "Inversiones", iconName = "trending_up", colorHex = "#00BCD4", isExpense = false),
+            CategoryEntity(id = 10, name = "Otros Ingresos", iconName = "add_circle", colorHex = "#8BC34A", isExpense = false)
+        )
+
+        fun getDefaultRules(): List<MerchantRuleEntity> = listOf(
+            MerchantRuleEntity(keyword = "Mercadona", targetCategoryId = 1, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Carrefour", targetCategoryId = 1, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Lidl", targetCategoryId = 1, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Dia", targetCategoryId = 1, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Repsol", targetCategoryId = 2, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Cepsa", targetCategoryId = 2, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Uber", targetCategoryId = 2, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Amazon", targetCategoryId = 6, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Netflix", targetCategoryId = 7, targetAccountId = 1),
+            MerchantRuleEntity(keyword = "Spotify", targetCategoryId = 7, targetAccountId = 1)
+        )
+
+        fun getDefaultBudgets(): List<BudgetEntity> = listOf(
+            BudgetEntity(
+                name = "Alimentación Mensual",
+                categoryIds = "1",
+                limitAmount = 400.0,
+                period = BudgetEntity.PERIOD_MONTHLY,
+                rollover = true
+            ),
+            BudgetEntity(
+                name = "Ocio y Salidas",
+                categoryIds = "4",
+                limitAmount = 150.0,
+                period = BudgetEntity.PERIOD_MONTHLY,
+                rollover = false
+            )
+        )
     }
 
     private class DatabasePrepopulateCallback : RoomDatabase.Callback() {
@@ -64,88 +153,12 @@ abstract class AppDatabase : RoomDatabase() {
             CoroutineScope(Dispatchers.IO).launch {
                 val database = INSTANCE ?: return@launch
 
-                // 1. Pre-poblar Cuentas Iniciales
-                val defaultAccounts = listOf(
-                    AccountEntity(
-                        name = "Cuenta Principal",
-                        initialBalance = 1250.0,
-                        currencyCode = "EUR",
-                        colorHex = "#1976D2",
-                        iconName = "account_balance",
-                        accountType = "REGULAR",
-                        includeInTotal = true
-                    ),
-                    AccountEntity(
-                        name = "Efectivo",
-                        initialBalance = 140.0,
-                        currencyCode = "EUR",
-                        colorHex = "#388E3C",
-                        iconName = "payments",
-                        accountType = "CASH",
-                        includeInTotal = true
-                    ),
-                    AccountEntity(
-                        name = "Fondo de Ahorros",
-                        initialBalance = 4500.0,
-                        currencyCode = "EUR",
-                        colorHex = "#7B1FA2",
-                        iconName = "savings",
-                        accountType = "SAVINGS",
-                        includeInTotal = true
-                    )
-                )
-                database.accountDao().insertAll(defaultAccounts)
+                database.accountDao().insertAll(getDefaultAccounts())
+                database.categoryDao().insertAll(getDefaultCategories())
+                database.merchantRuleDao().insertAll(getDefaultRules())
+                database.budgetDao().insertAll(getDefaultBudgets())
 
-                // 2. Pre-poblar Categorías (Basadas en ingeniería inversa de Wallet y Cashew)
-                val defaultCategories = listOf(
-                    CategoryEntity(id = 1, name = "Alimentación", iconName = "restaurant", colorHex = "#FF5722", isExpense = true),
-                    CategoryEntity(id = 2, name = "Transporte", iconName = "directions_car", colorHex = "#03A9F4", isExpense = true),
-                    CategoryEntity(id = 3, name = "Vivienda & Facturas", iconName = "home", colorHex = "#9C27B0", isExpense = true),
-                    CategoryEntity(id = 4, name = "Ocio & Cafeterías", iconName = "local_cafe", colorHex = "#FF9800", isExpense = true),
-                    CategoryEntity(id = 5, name = "Salud & Farmacia", iconName = "medical_services", colorHex = "#E91E63", isExpense = true),
-                    CategoryEntity(id = 6, name = "Compras & Ropa", iconName = "shopping_bag", colorHex = "#673AB7", isExpense = true),
-                    CategoryEntity(id = 7, name = "Suscripciones", iconName = "subscriptions", colorHex = "#009688", isExpense = true),
-                    CategoryEntity(id = 8, name = "Nómina & Salario", iconName = "payments", colorHex = "#4CAF50", isExpense = false),
-                    CategoryEntity(id = 9, name = "Inversiones", iconName = "trending_up", colorHex = "#00BCD4", isExpense = false),
-                    CategoryEntity(id = 10, name = "Otros Ingresos", iconName = "add_circle", colorHex = "#8BC34A", isExpense = false)
-                )
-                database.categoryDao().insertAll(defaultCategories)
-
-                // 3. Pre-poblar Reglas de Comercios (Auto-categorización de notificaciones)
-                val defaultRules = listOf(
-                    MerchantRuleEntity(keyword = "Mercadona", targetCategoryId = 1, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Carrefour", targetCategoryId = 1, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Lidl", targetCategoryId = 1, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Dia", targetCategoryId = 1, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Repsol", targetCategoryId = 2, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Cepsa", targetCategoryId = 2, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Uber", targetCategoryId = 2, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Amazon", targetCategoryId = 6, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Netflix", targetCategoryId = 7, targetAccountId = 1),
-                    MerchantRuleEntity(keyword = "Spotify", targetCategoryId = 7, targetAccountId = 1)
-                )
-                database.merchantRuleDao().insertAll(defaultRules)
-
-                // 4. Pre-poblar Presupuestos Iniciales con Rollover
-                val defaultBudgets = listOf(
-                    BudgetEntity(
-                        name = "Alimentación Mensual",
-                        categoryIds = "1",
-                        limitAmount = 400.0,
-                        period = BudgetEntity.PERIOD_MONTHLY,
-                        rollover = true
-                    ),
-                    BudgetEntity(
-                        name = "Ocio y Salidas",
-                        categoryIds = "4",
-                        limitAmount = 150.0,
-                        period = BudgetEntity.PERIOD_MONTHLY,
-                        rollover = false
-                    )
-                )
-                database.budgetDao().insertAll(defaultBudgets)
-
-                // 5. Un par de transacciones de ejemplo para visualizar el dashboard al instante
+                // Un par de transacciones de ejemplo para visualizar el dashboard al instante
                 val now = System.currentTimeMillis()
                 val oneDayMs = 24 * 60 * 60 * 1000L
                 val sampleTransactions = listOf(

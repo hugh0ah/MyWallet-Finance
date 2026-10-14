@@ -16,31 +16,56 @@ object BalanceCalculator {
         account: AccountEntity,
         transactions: List<TransactionEntity>
     ): Double {
-        var balance = account.initialBalance
+        val netTransactions = calculateAccountNetTransactions(account.id, transactions)
+        return account.initialBalance + netTransactions
+    }
 
+    /**
+     * Calcula la suma neta de transacciones asociadas a una cuenta:
+     * (Ingresos + Transferencias Entrantes) - (Gastos + Transferencias Salientes).
+     */
+    fun calculateAccountNetTransactions(
+        accountId: Long,
+        transactions: List<TransactionEntity>
+    ): Double {
+        var net = 0.0
         for (tx in transactions) {
             when (tx.transactionType) {
                 TransactionEntity.TYPE_INCOME -> {
-                    if (tx.accountId == account.id) {
-                        balance += tx.amount
+                    if (tx.accountId == accountId) {
+                        net += tx.amount
                     }
                 }
                 TransactionEntity.TYPE_EXPENSE -> {
-                    if (tx.accountId == account.id) {
-                        balance -= tx.amount
+                    if (tx.accountId == accountId) {
+                        net -= tx.amount
                     }
                 }
                 TransactionEntity.TYPE_TRANSFER -> {
-                    if (tx.accountId == account.id) {
-                        balance -= tx.amount // Saliente
+                    if (tx.accountId == accountId) {
+                        net -= tx.amount // Saliente
                     }
-                    if (tx.toAccountId == account.id) {
-                        balance += tx.amount // Entrante
+                    if (tx.toAccountId == accountId) {
+                        net += tx.amount // Entrante
                     }
                 }
             }
         }
-        return balance
+        return net
+    }
+
+    /**
+     * Determina el saldo inicial que debe tener una cuenta para que, sumado a sus movimientos actuales,
+     * el saldo total resultante sea exactamente el deseado por el usuario:
+     * nuevoInitialBalance = saldoRealDeseado - netTransactions.
+     */
+    fun calculateInitialBalanceForDesired(
+        desiredBalance: Double,
+        accountId: Long,
+        transactions: List<TransactionEntity>
+    ): Double {
+        val net = calculateAccountNetTransactions(accountId, transactions)
+        return desiredBalance - net
     }
 
     /**

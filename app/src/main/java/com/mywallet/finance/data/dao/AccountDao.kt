@@ -32,6 +32,15 @@ interface AccountDao {
     @Delete
     suspend fun deleteAccount(account: AccountEntity)
 
+    @Query("UPDATE accounts SET initialBalance = :newInitialBalance WHERE id = :accountId")
+    suspend fun updateInitialBalance(accountId: Long, newInitialBalance: Double)
+
+    @Query("DELETE FROM accounts WHERE id = :accountId")
+    suspend fun deleteAccountById(accountId: Long)
+
+    @Query("DELETE FROM accounts")
+    suspend fun deleteAllAccounts()
+
     @Query("SELECT COUNT(*) FROM accounts")
     suspend fun countAccounts(): Int
 }

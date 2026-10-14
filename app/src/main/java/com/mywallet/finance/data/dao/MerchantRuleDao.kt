@@ -32,6 +32,12 @@ interface MerchantRuleDao {
     @Delete
     suspend fun deleteRule(rule: MerchantRuleEntity)
 
+    @Query("DELETE FROM merchant_rules WHERE id = :id")
+    suspend fun deleteRuleById(id: Long)
+
+    @Query("DELETE FROM merchant_rules")
+    suspend fun deleteAllRules()
+
     @Query("SELECT COUNT(*) FROM merchant_rules")
     suspend fun countRules(): Int
 }

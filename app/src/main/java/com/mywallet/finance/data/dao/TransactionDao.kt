@@ -42,7 +42,13 @@ interface TransactionDao {
     suspend fun deleteTransaction(transaction: TransactionEntity)
 
     @Query("DELETE FROM transactions WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    suspend fun deleteTransactionById(id: Long)
+
+    @Query("DELETE FROM transactions")
+    suspend fun deleteAllTransactions()
+
+    @Query("DELETE FROM transactions WHERE accountId = :accountId OR toAccountId = :accountId")
+    suspend fun deleteTransactionsByAccount(accountId: Long)
 
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun countTransactions(): Int
