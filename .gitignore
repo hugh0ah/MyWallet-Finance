@@ -1,0 +1,20 @@
+# Binarios e investigación de ingeniería inversa
+_apks_research/
+*.apk
+*.xapk
+*.aab
+
+# Gradle y compilación
+.gradle/
+build/
+app/build/
+
+# Secretos y configuración local
+local.properties
+*.keystore
+*.jks
+
+# IDEs
+.idea/
+*.iml
+.vscode/
